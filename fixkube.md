@@ -89,15 +89,15 @@ kubectl get pods -n xyz 2>&1 | fixkube
 fixkube "error: the server doesn't have a resource type 'ingresses'"
 ~~~
 
-5. Fix invalid YAML or apply issues
+4. Fix invalid YAML or apply issues
 
 ~~~
 kubectl apply -f bad.yaml 2>&1 | fixkube
 ~~~
 
-- How It Works
+### How It Works
 
-  - Reads kubectl error from:
+- Reads kubectl error from:
 
   - stdin
 
