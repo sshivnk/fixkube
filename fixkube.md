@@ -1,8 +1,8 @@
 # fixkube
 
-### fixkube is a small Python-powered command-line tool that helps you debug Kubernetes / kubectl errors using a local Ollama LLM model.
+*fixkube is a small Python-powered command-line tool that helps you debug Kubernetes / kubectl errors using a local Ollama LLM model.*
 
-### Instead of manually searching for cryptic kubectl error messages, you can simply:
+*Instead of manually searching for cryptic kubectl error messages, you can simply:*
 
 ~~~
 kubectl get pods -n xyz 2>&1 | fixkube
