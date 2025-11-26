@@ -122,7 +122,7 @@ def main():
         ##print("  fixkube \"error: the server doesn't have a resource type 'ingresses'\"", file=sys.stderr)
         sys.exit(1)
 
-    # You could enhance this to detect a pattern like 'kubectl ...' inside the error text if needed.
+
     raw_command = None
 
     prompt = build_prompt(error_text, raw_command)
