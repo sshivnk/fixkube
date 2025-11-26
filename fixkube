@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+import sys
+import textwrap
+import json
+import requests
+import subprocess
+from typing import Optional
+
+OLLAMA_URL = "http://localhost:11434/api/chat"
+MODEL_NAME = "llama3.1"  # change to whatever model you prefer
+
+
+def read_error_from_stdin() -> Optional[str]:
+    if sys.stdin.isatty():
+        return None
+    data = sys.stdin.read().strip()
+    return data or None
+
+
+def read_error_from_args() -> Optional[str]:
+    if len(sys.argv) > 1:
+        return " ".join(sys.argv[1:]).strip()
+    return None
+
+
+def get_kubectl_context_info() -> str:
+    """
+    Try to grab some basic kubectl context to give the model more info.
+    If anything fails, we just ignore it.
+    """
+    info_parts = []
+
+    def run_cmd(cmd):
+        try:
+            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True, timeout=3)
+            return out.strip()
+        except Exception:
+            return None
+
+    version = run_cmd(["kubectl", "version", "--short"])
+    if version:
+        info_parts.append("kubectl version:\n" + version)
+
+    ctx = run_cmd(["kubectl", "config", "current-context"])
+    if ctx:
+        info_parts.append("current context: " + ctx)
+
+    ns = run_cmd(["kubectl", "config", "view", "--minify", "-o", "jsonpath={..namespace}"])
+    if ns:
+        info_parts.append("current namespace: " + ns)
+
+    return "\n\n".join(info_parts)
+
+
+def build_prompt(error_text: str, raw_command: Optional[str]) -> str:
+    context_info = get_kubectl_context_info()
+    extra = f"\n\nCommand that produced the error:\n{raw_command}" if raw_command else ""
+    kube_ctx = f"\n\nCurrent kubectl context info:\n{context_info}" if context_info else ""
+
+    return textwrap.dedent(f"""
+    You are a Kubernetes and kubectl troubleshooting assistant.
+
+    The user ran a kubectl command and got this error:
+
+    ---- ERROR START ----
+    {error_text}
+    ---- ERROR END ----
+
+    {extra}
+    {kube_ctx}
+
+    Task:
+    1. Explain clearly what the error probably means.
+    2. List the most likely causes.
+    3. Suggest concrete kubectl commands and steps to fix it.
+    4. If the error is ambiguous, show how to gather more info (e.g., describe pod, get events).
+    5. Avoid destructive actions (like deleting namespaces or clusters) unless absolutely necessary.
+
+    Respond in concise steps the user can copy-paste.
+    """)
+
+
+def call_ollama(prompt: str) -> str:
+    payload = {
+        "model": MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": "You are an expert Kubernetes SRE and DevOps engineer."},
+            {"role": "user", "content": prompt},
+        ],
+        "stream": False,
+    }
+
+    try:
+        resp = requests.post(OLLAMA_URL, json=payload, timeout=120)
+        resp.raise_for_status()
+    except Exception as e:
+        print(f"[fixkube] Failed to talk to Ollama: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        data = resp.json()
+    except json.JSONDecodeError:
+        print("[fixkube] Invalid JSON response from Ollama", file=sys.stderr)
+        sys.exit(1)
+
+    # Ollama /api/chat returns {'message': {'role': 'assistant', 'content': '...'}, ...}
+    msg = data.get("message", {})
+    content = msg.get("content", "").strip()
+    if not content:
+        print("[fixkube] Empty response from model", file=sys.stderr)
+        sys.exit(1)
+    return content
+
+
+def main():
+    # Optionally allow the user to pass the original kubectl command via an env var or arg later.
+    error_text = read_error_from_stdin() or read_error_from_args()
+
+    if not error_text:
+        print("Usage:", file=sys.stderr)
+        print("  kubectl ... 2>&1 | fixkube", file=sys.stderr)
+        ##print("  fixkube \"error: the server doesn't have a resource type 'ingresses'\"", file=sys.stderr)
+        sys.exit(1)
+
+    # You could enhance this to detect a pattern like 'kubectl ...' inside the error text if needed.
+    raw_command = None
+
+    prompt = build_prompt(error_text, raw_command)
+    answer = call_ollama(prompt)
+    print(answer)
+
+
+if __name__ == "__main__":
+    main()
