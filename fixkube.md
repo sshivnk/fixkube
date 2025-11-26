@@ -1,60 +1,62 @@
-fixkube
+# fixkube
 
-##fixkube is a small Python-powered command-line tool that helps you debug Kubernetes / kubectl errors using a local Ollama LLM model.
+### fixkube is a small Python-powered command-line tool that helps you debug Kubernetes / kubectl errors using a local Ollama LLM model.
 
-Instead of manually searching for cryptic kubectl error messages, you can simply:
+### Instead of manually searching for cryptic kubectl error messages, you can simply:
 
+~~~
 kubectl get pods -n xyz 2>&1 | fixkube
-
+~~~
 
 or
-
+~~~
 fixkube "error: the server doesn't have a resource type 'ingresses'"
-
+~~~
 
 fixkube will connect to your local Ollama model, analyze the error, explain the likely cause, and provide actionable steps to fix it.
 
-🚀 Features
+### Features
 
-Debug kubectl errors instantly using local LLM
+- Debug kubectl errors instantly using local LLM
 
-Works in two modes:
+- Works in two modes:
 
-Pipe mode (recommended)
+  - Pipe mode (recommended)
 
-Direct text mode
+  - Direct text mode
 
-Automatically fetches:
+- Automatically fetches:
 
-kubectl version
+   - kubectl version
 
-current context
+   - current context
 
-current namespace
+   - current namespace
 
-Provides:
+- Provides:
 
-Explanation of the error
+   - Explanation of the error
 
-Root cause
+   - Root cause
 
-Suggested kubectl commands and next steps
+   - Suggested kubectl commands and next steps
 
-Zero cloud dependency → fully local
+- Zero cloud dependency → fully local
 
-Fast and lightweight
+- Fast and lightweight
 
-🛠️ Requirements
+### Requirements
 
-Python 3
+- Python 3
 
-Ollama installed and running
+- Ollama installed and running
 
-A local LLM pulled, for example:
-
+- A local LLM pulled, for example:
+~~~
 ollama pull llama3.1
+~~~
 
-📦 Installation
+### Installation
 
 Save the script below as fixkube (no extension):
 
@@ -67,55 +69,54 @@ chmod +x fixkube
 
 Add it to your PATH:
 
+~~~
 mkdir -p ~/bin
 mv fixkube ~/bin/
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
+~~~
 
-🧪 Usage
+### Usage
 1. Pipe kubectl error (recommended)
+
+~~~
 kubectl get pods -n xyz 2>&1 | fixkube
+~~~
 
-2. Pass manual error text
+3. Pass manual error text
+
+~~~
 fixkube "error: the server doesn't have a resource type 'ingresses'"
+~~~
 
-3. Fix invalid YAML or apply issues
+5. Fix invalid YAML or apply issues
+
+~~~
 kubectl apply -f bad.yaml 2>&1 | fixkube
+~~~
 
-🧠 How It Works
+- How It Works
 
-Reads kubectl error from:
+  - Reads kubectl error from:
 
-stdin
+  - stdin
 
-OR command-line arguments
+  - OR command-line arguments
 
-Gathers your current Kubernetes context
+- Gathers your current Kubernetes context
 
-Builds a structured prompt for the LLM
+- Builds a structured prompt for the LLM
 
-Sends it to Ollama running locally
+- Sends it to Ollama running locally
 
-Prints a clean, actionable diagnosis
+- Prints a clean, actionable diagnosis
 
-🛡️ Why Local?
+### Why Local?
 
-No cloud API calls
+- No cloud API calls
 
-No data leaves your machine
+- No data leaves your machine
 
-Instant response time
+- Instant response time
 
-Free (you run your own model)
-
-📌 Roadmap
-
-fixkube kubectl ... mode
-
-Support for multiple models
-
---explain and --verbose flags
-
-Rich formatting output
-
-Packaging as pip module (pip install fixkube)
+- Free (you run your own model)
